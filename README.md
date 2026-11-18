@@ -1,57 +1,37 @@
-# LISS-IV Pre/Post Monsoon PCA for Landslide Interpretation
+# LISS-IV Landslide PCA
 
-This command-line tool creates the six-band ERDAS Imagine stack in the SOP order, runs covariance-based six-component PCA, and writes each component as its own .img file.
+A local browser GUI for six-component PCA using pre- and post-monsoon LISS-IV scenes. It builds the ERDAS Imagine stack in the SOP order and highlights PC4 for visual landslide interpretation.
 
-## Checks and prerequisites
+## Start on Windows
 
-All six selected bands must share exactly the same dimensions, CRS, affine geotransform, pixel size, and extent. The PCA uses only pixels that are finite and valid in all six bands, respecting each band's NoData value and GDAL mask.
+1. Install Miniforge or Miniconda for Windows if it is not already installed.
+2. Double-click install_windows.bat once to create the GDAL and Streamlit environment.
+3. Double-click run_windows.bat. It starts the local app and opens it in your browser.
 
-Grid metadata cannot prove accurate image co-registration at ground control points. Co-register the dates before running the script. The script requires the explicit --i-confirm-coregistered acknowledgement and stops if the grid checks fail. It does not reproject or resample inputs.
+The app runs locally on your PC; the uploaded rasters are processed locally and are not sent to a hosted service.
 
-## Outputs
+## Use the app
 
-- Pre_Post_Stack.img: six bands in SOP order.
-- PCA_6Components.img: all six component score bands.
-- PC1.img through PC6.img: one component per file.
-- PCA_metadata.json: valid-pixel count, means, covariance matrix, eigenvalues, explained variance, eigenvectors, and source-band mapping.
+1. Upload one pre-monsoon and one post-monsoon raster. Each should contain the three corresponding LISS-IV bands. Supported inputs include GeoTIFF, ERDAS Imagine .img, and ZIP files containing one raster plus sidecars.
+2. Map source bands to B2, B3, and B4. The default indices are 1, 2, and 3.
+3. Confirm that both scenes are accurately co-registered, then click Run six-component PCA.
+4. Review the PC4 preview and explained-variance table.
+5. Click Save all outputs as a ZIP. Your browser lets you choose where to save the results.
 
-The stack preserves the input type when all six bands share an HFA-compatible real type. Mixed or unsupported types are promoted to Float64. PCA score rasters use Float32 and mark invalid pixels as NoData.
+The app stops if CRS, raster dimensions, affine grid, extent, or resolution do not match. Matching metadata cannot prove accurate tie-point co-registration, so complete that step before PCA.
 
-## Install
+## Outputs in the ZIP
 
-A conda-forge environment is the simplest way to install GDAL's Python bindings with matching native libraries:
+- Pre_Post_Stack.img: pre B2, pre B3, pre B4, post B2, post B3, post B4.
+- PCA_6Components.img: all six PC score bands.
+- PC1.img through PC6.img: each component as a separate one-band raster.
+- PCA_metadata.json: source mapping, valid-pixel count, band means, covariance matrix, eigenvalues, explained variance, and eigenvectors.
+- Any HFA sidecar files created for large rasters.
 
-    conda create -n liss4-pca -c conda-forge python=3.12 numpy gdal
-    conda activate liss4-pca
+PCA is centered but not standardized: it uses the sample covariance matrix (denominator n - 1) of the raw input bands. Components are ordered by descending eigenvalue. PC4 is an exploratory indicator, not an automatic landslide classification. Inspect candidate patches on slopes against both dates and terrain, then confirm and digitize scars manually. Eigenvector signs are arbitrary, so PC4 may appear inverted relative to ERDAS Imagine.
 
-An existing OSGeo4W installation also works when its Python environment can import both osgeo.gdal and NumPy.
+## Command-line alternative
 
-## Run with six single-band files
-
-    python liss4_change_pca.py pre_B2.tif pre_B3.tif pre_B4.tif post_B2.tif post_B3.tif post_B4.tif --outdir results --i-confirm-coregistered
-
-## Run with two three-band images
-
-If each source image stores B2, B3, and B4 as bands 1, 2, and 3, pass each image three times and select the band numbers:
-
-    python liss4_change_pca.py pre.img pre.img pre.img post.img post.img post.img --band-indices 1 2 3 1 2 3 --outdir results --i-confirm-coregistered
-
-Set the six --band-indices values to the actual one-based positions when the inputs use different band positions.
-
-Use --overwrite to replace existing outputs. Without it, the program refuses to replace existing files.
-
-## PCA method and interpretation
-
-PCA is centered but not standardized: the script eigendecomposes the sample covariance matrix (denominator n - 1) of the six raw input bands. Components are ordered by descending eigenvalue. Use consistent radiometric scaling across dates and bands.
-
-Eigenvector signs are mathematically arbitrary, so PC4 may be inverted relative to ERDAS Imagine. Compare spatial patterns rather than whether a patch is bright or dark. PC4 is an exploratory indicator from the SOP; it does not automatically classify landslides. Inspect contrasting patches on slopes and compare them with both dates and terrain/context data. Confirm scars visually and digitize only after review.
-
-## Requirements
-
-- Python 3.10 or newer
-- GDAL Python bindings with the HFA driver
-- NumPy 1.24 or newer
-
-See requirements.txt. Use conda-forge or OSGeo4W to install GDAL so the Python bindings match the native GDAL libraries.
+The same calculation remains available in liss4_change_pca.py. See docs/USAGE.md for the GUI and CLI details.
 
 
