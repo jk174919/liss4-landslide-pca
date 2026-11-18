@@ -1,0 +1,10 @@
+name: liss4-pca
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - gdal>=3.7,<4
+  - numpy>=1.24
+  - streamlit>=1.40,<2
+
+
