@@ -2,7 +2,10 @@ __pycache__/
 *.py[cod]
 .env/
 .venv/
+.conda-env/
+.streamlit_packages/
 results/
+output/
 *.img
 *.ige
 *.aux.xml
