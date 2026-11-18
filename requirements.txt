@@ -1,0 +1,4 @@
+numpy>=1.24
+# Install GDAL from conda-forge or OSGeo4W so bindings match the native libraries.
+
+
