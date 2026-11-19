@@ -28,7 +28,7 @@ The match report pairs only the same path/row. It scores footprint overlap, reco
 
 For separate BAND2/BAND3/BAND4 inputs, each aligned output is a three-band GeoTIFF in the band order expected by the PCA page.
 
-To run the notebook, double-click run_notebook_windows.bat. It opens bulk_scene_preparation.ipynb in JupyterLab from the installed environment. Edit PRE_ROOT, POST_ROOT, and OUTPUT_ROOT in the first code cell.
+To open the notebook launcher, double-click run_notebook_windows.bat. It opens bulk_pathrow_sort.ipynb in JupyterLab from the installed environment. Open bulk_scene_preparation.ipynb from JupyterLab's file browser for the separate common-grid workflow.
 
 The program can reconstruct a missing GeoTIFF transform only when metadata explicitly says GEOREF and includes UTM zone and map bounds. It does not auto-georeference a scene from path/row alone. RPC-only or missing-georeference products that lack supported map bounds need the supplier's sensor model, a suitable DEM, or ground control points before alignment.
 
