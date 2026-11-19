@@ -510,11 +510,36 @@ def pair_scenes(scenes: list[dict], min_coverage: float = MIN_COVERAGE_DEFAULT) 
                         "_target_wkt": pre_wkt,
                     })
             pairs.append(record)
-    return sorted(
+    pairs = sorted(
         pairs,
         key=lambda item: (
             item["path"], item["row"], item.get("pre_date") or "",
             item.get("post_date") or "",
+        ),
+    )
+    grouped = {}
+    for pair in pairs:
+        grouped.setdefault((pair["path"], pair["row"]), []).append(pair)
+    for candidates in grouped.values():
+        candidates.sort(
+            key=lambda item: (
+                -min(item["pre_coverage_pct"], item["post_coverage_pct"])
+                if item.get("pre_coverage_pct") is not None
+                and item.get("post_coverage_pct") is not None
+                else 1,
+                -(item.get("overlap_pct_of_union") or 0),
+                item.get("pre_date") or "",
+                item.get("post_date") or "",
+            )
+        )
+        for rank, pair in enumerate(candidates, start=1):
+            pair["pair_rank"] = rank
+            pair["recommended"] = rank == 1
+    return sorted(
+        pairs,
+        key=lambda item: (
+            item["path"], item["row"], item.get("pair_rank", 1),
+            item.get("pre_date") or "", item.get("post_date") or "",
         ),
     )
 
@@ -548,7 +573,8 @@ def scene_report_rows(scenes: list[dict]) -> list[dict]:
 def pair_report_rows(pairs: list[dict]) -> list[dict]:
     keys = (
         "path", "row", "pre_scene_id", "post_scene_id", "pre_date", "post_date",
-        "status", "pre_coverage_pct", "post_coverage_pct", "overlap_pct_of_union",
+        "status", "pair_rank", "recommended", "pre_coverage_pct",
+        "post_coverage_pct", "overlap_pct_of_union",
         "reason",
     )
     return [{key: pair.get(key) for key in keys} for pair in pairs]
