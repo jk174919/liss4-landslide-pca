@@ -15,6 +15,7 @@ import streamlit as st
 from osgeo import gdal
 
 import liss4_change_pca as pca
+import bulk_scene_prep as bulk
 
 gdal.UseExceptions()
 LOG = logging.getLogger("liss4_pca_app")
@@ -36,6 +37,24 @@ def _inspect_raster(path: Path) -> dict:
     return details
 
 
+def _scene_identity(scene_directory: Path) -> dict:
+    try:
+        return bulk.product_identity(scene_directory)
+    except (OSError, ValueError):
+        return {"path": None, "row": None, "date": None, "metadata_files": []}
+
+
+def _default_output_dir(scene_directory: Path) -> Path:
+    season_directory = scene_directory.parent
+    pathrow_directory = season_directory.parent
+    if (
+        season_directory.name.casefold() == "pre_monsoon"
+        and re.fullmatch(r"path_\d+_row_\d+", pathrow_directory.name, re.IGNORECASE)
+    ):
+        return pathrow_directory / "LISS4_PCA_Results"
+    return season_directory / "LISS4_PCA_Results"
+
+
 def _resolve_scene_path(raw_path: str, scene_label: str) -> dict | None:
     """Accept either one multi-band raster or a folder of BAND2/3/4 rasters."""
     raw_path = (raw_path or "").strip().strip('"')
@@ -47,18 +66,24 @@ def _resolve_scene_path(raw_path: str, scene_label: str) -> dict | None:
 
     if requested.is_dir():
         band_files = {}
-        for item in requested.iterdir():
+        preferred = {}
+        for item in sorted(requested.iterdir(), key=lambda path: path.name.casefold()):
             if not item.is_file():
                 continue
             match = re.fullmatch(r"BAND[_-]?([234])(?:_RPC)?\.(?:tif|tiff)", item.name, re.IGNORECASE)
             if match:
-                band_files[int(match.group(1))] = item
+                number = int(match.group(1))
+                is_preferred = re.fullmatch(rf"BAND[_-]?{number}\.(?:tif|tiff)", item.name, re.IGNORECASE) is not None
+                if number not in band_files or (is_preferred and not preferred[number]):
+                    band_files[number] = item
+                    preferred[number] = is_preferred
         if set(band_files) == {2, 3, 4}:
             ordered = [band_files[index] for index in (2, 3, 4)]
             details = [_inspect_raster(path) for path in ordered]
             if any(item["bands"] < 1 for item in details):
                 raise ValueError(f"{scene_label} BAND2/BAND3/BAND4 files must each contain raster data.")
             first = details[0]
+            identity = _scene_identity(requested)
             return {
                 "label": scene_label,
                 "scene_directory": requested.resolve(),
@@ -70,6 +95,10 @@ def _resolve_scene_path(raw_path: str, scene_label: str) -> dict | None:
                 "height": first["height"],
                 "crs": first["crs"],
                 "description": "BAND2, BAND3, and BAND4 folder",
+                "metadata_path": identity["path"],
+                "metadata_row": identity["row"],
+                "metadata_date": identity["date"],
+                "metadata_files": identity["metadata_files"],
             }
 
         rasters = sorted(
@@ -95,6 +124,7 @@ def _resolve_scene_path(raw_path: str, scene_label: str) -> dict | None:
             f"{scene_label} has {details['bands']} band(s). Use a three-band raster or a folder "
             "with BAND2.tif, BAND3.tif, and BAND4.tif."
         )
+    identity = _scene_identity(scene_directory)
     return {
         "label": scene_label,
         "scene_directory": scene_directory,
@@ -106,6 +136,10 @@ def _resolve_scene_path(raw_path: str, scene_label: str) -> dict | None:
         "height": details["height"],
         "crs": details["crs"],
         "description": raster_path.name,
+        "metadata_path": identity["path"],
+        "metadata_row": identity["row"],
+        "metadata_date": identity["date"],
+        "metadata_files": identity["metadata_files"],
     }
 
 
@@ -289,6 +323,37 @@ for scene in (pre_scene, post_scene):
             f"{scene['label']}: {scene['description']} | {scene['width']:,} × {scene['height']:,} pixels | "
             f"{scene['band_count']} PCA bands | CRS {'present' if scene['crs'] else 'missing'}"
         )
+        if scene.get("metadata_path") is not None and scene.get("metadata_row") is not None:
+            identity_text = (
+                f"metadata Path {scene['metadata_path']:04d} / Row {scene['metadata_row']:04d}"
+            )
+            if scene.get("metadata_date"):
+                identity_text += f" | Date {scene['metadata_date']}"
+            st.caption(f"{scene['label']} product identity: {identity_text}")
+        else:
+            st.caption(f"{scene['label']}: Path/Row could not be confirmed from product metadata.")
+
+metadata_pair_ready = False
+if pre_scene and post_scene:
+    pre_identity = (pre_scene.get("metadata_path"), pre_scene.get("metadata_row"))
+    post_identity = (post_scene.get("metadata_path"), post_scene.get("metadata_row"))
+    if all(value is not None for value in pre_identity + post_identity):
+        if pre_identity == post_identity:
+            metadata_pair_ready = True
+            st.success(
+                f"Metadata confirms both inputs are Path {pre_identity[0]:04d} / Row {pre_identity[1]:04d}."
+            )
+        else:
+            st.error(
+                "The product metadata Path/Row values do not match. Select pre- and post-monsoon "
+                "product folders from the same Path/Row before running PCA."
+            )
+    else:
+        st.warning("Path/Row could not be read from both product metadata files.")
+        metadata_pair_ready = st.checkbox(
+            "I manually verified that these pre- and post-monsoon scenes have the same Path/Row.",
+            key="confirm_pathrow_without_metadata",
+        )
 
 pre_indices = _band_mapping(pre_scene, "pre") if pre_scene else []
 post_indices = _band_mapping(post_scene, "post") if post_scene else []
@@ -302,7 +367,7 @@ if (
     st.session_state.pop("pca_result_dir", None)
 
 if pre_scene:
-    default_output_dir = pre_scene["scene_directory"].parent / "LISS4_PCA_Results"
+    default_output_dir = _default_output_dir(pre_scene["scene_directory"])
     st.caption(f"Default save location on this PC: {default_output_dir}")
 st.caption("For a bulk set of product folders, open **Bulk Scene Preparation** in the sidebar.")
 
@@ -327,7 +392,9 @@ if not coregistered:
     st.warning("Complete and verify image co-registration before running PCA.")
 
 overwrite = st.checkbox("Replace existing PCA outputs in the output folder", value=False)
-can_run = bool(grid_ready and coregistered and pre_indices and post_indices)
+can_run = bool(
+    grid_ready and metadata_pair_ready and coregistered and pre_indices and post_indices
+)
 run_clicked = st.button(
     "Run six-component PCA and save to my PC",
     type="primary",
@@ -340,7 +407,7 @@ if run_clicked:
         output_dir = (
             Path(output_text.strip()).expanduser()
             if output_text.strip()
-            else pre_scene["scene_directory"].parent / "LISS4_PCA_Results"
+            else _default_output_dir(pre_scene["scene_directory"])
         )
         args = SimpleNamespace(
             inputs=pre_scene["inputs"] + post_scene["inputs"],
