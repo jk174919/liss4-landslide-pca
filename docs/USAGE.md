@@ -18,6 +18,8 @@ Open **Sort Products by Path/Row** from the sidebar. Enter one or more parent fo
 
 Review the matches and select the Path/Row groups to organize. After checking the confirmation box, click **Move selected matched folders**. The app moves each full original product folder, keeping all image files, metadata, and sidecars together under `Path_####_Row_####/Pre_Monsoon/` or `Post_Monsoon/`. It leaves unmatched products in place, refuses to overwrite existing destination folders, and writes `path_row_folder_index.csv` in the output root. Then paste the exact moved pre and post product-folder paths into the PCA page.
 
+The Jupyter version is `bulk_pathrow_sort.ipynb`. Edit `SOURCE_ROOTS` and `OUTPUT_ROOT`, run the scan and preview cells, then set `CONFIRM_MOVE = True` and rerun the last cell when you are ready to move the selected folders.
+
 ## Bulk scene matching and common-grid preparation
 
 Open Bulk Scene Preparation in the app sidebar when you need aligned raster outputs. Select the local pre- and post-monsoon parent folders and an output folder. The scanner recursively reads NRSC BAND_META.txt or .meta files and looks for Path, Row, DateOfPass, ProdType, ZoneNo, and raster dimensions/CRS. The 2026 pre window is January through May; the post window is October through December. Separate BAND2.tif, BAND3.tif, and BAND4.tif files are treated as one scene in that order.
