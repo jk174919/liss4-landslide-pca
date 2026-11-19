@@ -16,7 +16,7 @@ Select the two scenes, map the three source band indices for each date, check th
 
 Open Bulk Scene Preparation in the app sidebar. Select the local pre- and post-monsoon parent folders and an output folder. The scanner recursively reads NRSC BAND_META.txt or .meta files and looks for Path, Row, DateOfPass, ProdType, ZoneNo, and raster dimensions/CRS. The 2026 pre window is January through May; the post window is October through December. Separate BAND2.tif, BAND3.tif, and BAND4.tif files are treated as one scene in that order.
 
-The match report pairs only the same path/row. It scores footprint overlap and marks pairs below the configured coverage threshold for review. Selected pairs are written together under a path/row output folder. Each pair contains a pre TIFF, a post TIFF, and pair_manifest.json. The two rasters are warped to the same CRS, pixel size, dimensions, and common overlap extent. The default target CRS and pixel size come from the pre scene.
+The match report pairs only the same path/row. It scores footprint overlap, recommends the best-coverage date pair for each path/row, and marks pairs below the configured coverage threshold for review. Selected pairs are written together under a path/row output folder. Each pair contains a pre TIFF, a post TIFF, and pair_manifest.json. The two rasters are warped to the same CRS, pixel size, dimensions, and common overlap extent. The default target CRS and pixel size come from the pre scene.
 
 For separate BAND2/BAND3/BAND4 inputs, each aligned output is a three-band GeoTIFF in the band order expected by the PCA page.
 
