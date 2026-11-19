@@ -24,6 +24,6 @@ if not exist "%ROOT%.conda-env\python.exe" (
   call "%ROOT%install_windows.bat"
   if errorlevel 1 exit /b 1
 )
-echo Starting JupyterLab with the bulk preparation notebook...
-call "%CONDA_BAT%" run --prefix "%ROOT%.conda-env" --no-capture-output jupyter lab "%ROOT%bulk_scene_preparation.ipynb"
+echo Starting JupyterLab with the Path/Row folder sorting notebook...
+call "%CONDA_BAT%" run --prefix "%ROOT%.conda-env" --no-capture-output jupyter lab "%ROOT%bulk_pathrow_sort.ipynb"
 
