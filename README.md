@@ -8,19 +8,19 @@ A local browser GUI for six-component PCA using pre- and post-monsoon LISS-IV sc
 2. Double-click install_windows.bat once to create the GDAL and Streamlit environment.
 3. Double-click run_windows.bat. It starts the local app and opens it in your browser.
 
-The app runs locally on your PC; the uploaded rasters are processed locally and are not sent to a hosted service.
+The app runs locally on your PC. It reads the folder paths you enter, processes rasters on your disk, and writes results directly to your local output folder.
 
 ## Use the app
 
-1. Upload one pre-monsoon and one post-monsoon raster. Each should contain the three corresponding LISS-IV bands. Supported inputs include GeoTIFF, ERDAS Imagine .img, and ZIP files containing one raster plus sidecars.
-2. Map source bands to B2, B3, and B4. The default indices are 1, 2, and 3.
+1. Paste the pre- and post-monsoon scene paths. Use either a multi-band raster path or a scene folder containing one multi-band raster. For separate NRSC bands, use the folder with BAND2.tif, BAND3.tif, and BAND4.tif.
+2. Map source bands to B2, B3, and B4 when using a multi-band raster. Separate BAND2/BAND3/BAND4 files are mapped automatically.
 3. Confirm that both scenes are accurately co-registered, then click Run six-component PCA.
-4. Review the PC4 preview and explained-variance table.
-5. Click Save all outputs as a ZIP. Your browser saves it to its configured Downloads folder; enable its “Ask where to save each file” setting to choose a location each time.
+4. Enter an output folder on your PC. If left blank, the app creates LISS4_PCA_Results beside the pre-scene folder.
+5. Review PC4 and the explained-variance table. All rasters and metadata are already saved in that output folder.
 
 The app stops if CRS, raster dimensions, affine grid, extent, or resolution do not match. Matching metadata cannot prove accurate tie-point co-registration, so complete that step before PCA.
 
-## Outputs in the ZIP
+## PCA output files
 
 - Pre_Post_Stack.img: pre B2, pre B3, pre B4, post B2, post B3, post B4.
 - PCA_6Components.img: all six PC score bands.
