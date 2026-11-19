@@ -18,7 +18,9 @@ Open Bulk Scene Preparation in the app sidebar. Select the local pre- and post-m
 
 The match report pairs only the same path/row. It scores footprint overlap and marks pairs below the configured coverage threshold for review. Selected pairs are written together under a path/row output folder. Each pair contains a pre TIFF, a post TIFF, and pair_manifest.json. The two rasters are warped to the same CRS, pixel size, dimensions, and common overlap extent. The default target CRS and pixel size come from the pre scene.
 
-To run the notebook, open bulk_scene_preparation.ipynb in JupyterLab from the installed environment and edit PRE_ROOT, POST_ROOT, and OUTPUT_ROOT in the first code cell.
+For separate BAND2/BAND3/BAND4 inputs, each aligned output is a three-band GeoTIFF in the band order expected by the PCA page.
+
+To run the notebook, double-click run_notebook_windows.bat. It opens bulk_scene_preparation.ipynb in JupyterLab from the installed environment. Edit PRE_ROOT, POST_ROOT, and OUTPUT_ROOT in the first code cell.
 
 The program can reconstruct a missing GeoTIFF transform only when metadata explicitly says GEOREF and includes UTM zone and map bounds. It does not auto-georeference a scene from path/row alone. RPC-only or missing-georeference products that lack supported map bounds need the supplier's sensor model, a suitable DEM, or ground control points before alignment.
 
