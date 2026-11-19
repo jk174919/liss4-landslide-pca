@@ -52,7 +52,7 @@ The browser app also has a **Bulk Scene Preparation** page in the sidebar. This 
 - Selected pairs are reprojected/resampled to one CRS and pixel grid, cropped to the common overlap, and saved together under Path_####_Row_#### folders.
 - For separate BAND2/BAND3/BAND4 products, each output is a three-band GeoTIFF in the PCA GUI's expected order.
 
-Common-grid preparation is also available in `bulk_scene_preparation.ipynb`. Double-click `run_notebook_windows.bat` to open the notebooks in JupyterLab. Edit the paths at the top of the notebook you want, then run its cells in order.
+Common-grid preparation is also available in `bulk_scene_preparation.ipynb`. Double-click `run_notebook_windows.bat` to open `bulk_pathrow_sort.ipynb` in JupyterLab. From JupyterLab's file browser, open `bulk_scene_preparation.ipynb` when you need the separate common-grid workflow.
 
 The supplied NRSC example is already a GEOREF product. If a GeoTIFF is missing its georeferencing tags, the tool can rebuild a transform only when metadata explicitly identifies a GEOREF product and contains a UTM zone and product map bounds. RPC-only or unreferenced scenes without usable control information are reported for review; path/row alone cannot georeference pixels.
 
