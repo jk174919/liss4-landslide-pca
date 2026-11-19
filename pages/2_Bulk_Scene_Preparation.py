@@ -125,11 +125,13 @@ if pairs:
         label = (
             f"Path {pair['path']:03d} / Row {pair['row']:03d} | "
             f"{pair['pre_date']} → {pair['post_date']} | {pair['status']} | "
+            f"{'recommended | ' if pair.get('recommended') else ''}"
             f"{pair.get('pre_scene_id')} → {pair.get('post_scene_id')}"
         )
         label_to_pair[label] = pair
     default_labels = [
-        label for label, pair in label_to_pair.items() if pair["status"] == "READY"
+        label for label, pair in label_to_pair.items()
+        if pair["status"] == "READY" and pair.get("recommended")
     ]
 
     with st.expander("Alignment options", expanded=True):
