@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
+import hashlib
 import json
 import math
 import re
@@ -203,12 +204,17 @@ def _metadata_geotransform(values: dict[str, str], width: int, height: int):
 
 def _band_file_map(folder: Path) -> dict[int, str]:
     mapping = {}
-    for item in folder.iterdir():
+    preferred = {}
+    for item in sorted(folder.iterdir(), key=lambda path: path.name.casefold()):
         if not item.is_file() or item.suffix.lower() not in RASTER_EXTENSIONS:
             continue
         match = re.fullmatch(r"band[_-]?([234])(?:[_-].*)?", item.stem, re.IGNORECASE)
         if match:
-            mapping[int(match.group(1))] = str(item)
+            number = int(match.group(1))
+            is_preferred = re.fullmatch(rf"band[_-]?{number}", item.stem, re.IGNORECASE) is not None
+            if number not in mapping or (is_preferred and not preferred[number]):
+                mapping[number] = str(item)
+                preferred[number] = is_preferred
     return mapping
 
 
@@ -375,6 +381,177 @@ def season_for_date(value: dt.date | str | None) -> str:
     if POST_START <= value <= POST_END:
         return "post"
     return "outside selected 2026 seasons"
+
+
+def product_identity(folder: str | Path) -> dict:
+    """Read the path, row, and acquisition date from a product folder's metadata."""
+    folder = Path(folder).expanduser().resolve()
+    values, metadata_files = _metadata_for_folder(folder)
+    path_number, row_number = _path_row(values, "")
+    acquired = _metadata_date(values)
+    return {
+        "path": path_number,
+        "row": row_number,
+        "date": acquired.isoformat() if acquired else None,
+        "metadata_files": metadata_files,
+    }
+
+
+def group_pathrow_products(scenes: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
+    """Group complete 2026 products by metadata Path/Row and pre/post season.
+
+    This metadata-only grouping deliberately does not require georeferencing;
+    georeferencing and common-grid checks happen before PCA.
+    """
+    candidates = []
+    skipped = []
+    by_pathrow = {}
+    for scene in scenes:
+        folder = Path(scene["folder"])
+        metadata = scene.get("metadata", {})
+        metadata_files = scene.get("metadata_files", [])
+        path_number, row_number = _path_row(metadata, "")
+        acquired = _metadata_date(metadata)
+        season = season_for_date(acquired)
+        if not metadata_files:
+            skipped.append({"folder": str(folder), "reason": "No readable product metadata file."})
+            continue
+        if path_number is None or row_number is None:
+            skipped.append({"folder": str(folder), "reason": "Path and/or Row is missing from metadata."})
+            continue
+        if acquired is None:
+            skipped.append({"folder": str(folder), "reason": "DateOfPass/acquisition date is missing from metadata."})
+            continue
+        if season not in {"pre", "post"}:
+            continue
+
+        band_files = {int(key) for key in scene.get("band_files", {})}
+        if band_files == {2, 3, 4}:
+            band_layout = "Separate BAND2 / BAND3 / BAND4"
+        elif len(scene.get("raster_files", [])) == 1 and int(scene.get("raster", {}).get("bands") or 0) >= 3:
+            band_layout = "One multi-band raster (3+ bands)"
+        else:
+            skipped.append({
+                "folder": str(folder),
+                "reason": "Could not identify all three B2/B3/B4 bands unambiguously.",
+            })
+            continue
+
+        candidate = {
+            **scene,
+            "path": path_number,
+            "row": row_number,
+            "date": acquired.isoformat(),
+            "season": season,
+            "band_layout": band_layout,
+        }
+        candidates.append(candidate)
+        key = (path_number, row_number)
+        group = by_pathrow.setdefault(key, {"path": path_number, "row": row_number, "pre": [], "post": []})
+        group[season].append(candidate)
+
+    groups = [
+        group for group in by_pathrow.values()
+        if group["pre"] and group["post"]
+    ]
+    groups.sort(key=lambda group: (group["path"], group["row"]))
+    candidates.sort(key=lambda scene: (scene["path"], scene["row"], scene["date"], scene["season"], scene["folder"]))
+    return groups, candidates, skipped
+
+
+def move_pathrow_products(
+    groups: list[dict],
+    selected_keys: set[tuple[int, int]],
+    output_root: str | Path,
+    source_roots: list[str | Path],
+) -> list[dict]:
+    """Move selected original product folders under Path/Row and season folders.
+
+    All moves must stay on the same volume. Existing target folders are never
+    overwritten. If a move or index write fails, already moved folders are
+    rolled back to their original locations.
+    """
+    destination_root = Path(output_root).expanduser().resolve()
+    roots = [Path(root).expanduser().resolve() for root in source_roots]
+    if not roots or any(not root.is_dir() for root in roots):
+        raise NotADirectoryError("Every source root must be an existing folder.")
+    if not destination_root.drive or any(root.drive.casefold() != destination_root.drive.casefold() for root in roots):
+        raise ValueError("Choose an output folder on the same drive as every scanned source folder.")
+
+    plan = []
+    for group in groups:
+        key = (group["path"], group["row"])
+        if key not in selected_keys:
+            continue
+        for season in ("pre", "post"):
+            for scene in group[season]:
+                source = Path(scene["folder"]).expanduser().resolve()
+                if not source.is_dir():
+                    raise FileNotFoundError(f"Source product folder no longer exists: {source}")
+                if source.drive.casefold() != destination_root.drive.casefold():
+                    raise ValueError(f"Source and output are on different drives: {source}")
+                if not any(source == root or root in source.parents for root in roots):
+                    raise ValueError(f"Scanned product is outside the selected source roots: {source}")
+                if source == destination_root or source in destination_root.parents:
+                    raise ValueError(f"Output folder cannot be inside a product folder being moved: {destination_root}")
+                season_folder = "Pre_Monsoon" if season == "pre" else "Post_Monsoon"
+                suffix = hashlib.sha1(str(source).casefold().encode("utf-8")).hexdigest()[:8]
+                product_name = f"{scene['date']}_{_safe_token(source.name)}_{suffix}"
+                target = (
+                    destination_root
+                    / f"Path_{int(group['path']):04d}_Row_{int(group['row']):04d}"
+                    / season_folder
+                    / product_name
+                )
+                plan.append({
+                    "path": int(group["path"]),
+                    "row": int(group["row"]),
+                    "season": season,
+                    "date": scene["date"],
+                    "band_layout": scene["band_layout"],
+                    "source": str(source),
+                    "destination": str(target),
+                })
+
+    if not plan:
+        raise ValueError("Select at least one matched Path/Row group to move.")
+    destinations = [Path(item["destination"]) for item in plan]
+    if len(set(destinations)) != len(destinations):
+        raise FileExistsError("Two product folders would use the same destination. Choose a different output folder.")
+    existing = [str(path) for path in destinations if path.exists()]
+    index_path = destination_root / "path_row_folder_index.csv"
+    if existing:
+        raise FileExistsError("A destination product folder already exists; nothing was moved: " + ", ".join(existing))
+    if index_path.exists():
+        raise FileExistsError(f"An index already exists at {index_path}. Choose a new output folder.")
+
+    moved = []
+    try:
+        destination_root.mkdir(parents=True, exist_ok=True)
+        for item in plan:
+            source = Path(item["source"])
+            target = Path(item["destination"])
+            target.parent.mkdir(parents=True, exist_ok=True)
+            source.rename(target)
+            moved.append(item)
+        write_csv(index_path, plan)
+    except Exception as exc:
+        rollback_errors = []
+        for item in reversed(moved):
+            source = Path(item["source"])
+            target = Path(item["destination"])
+            try:
+                source.parent.mkdir(parents=True, exist_ok=True)
+                target.rename(source)
+            except Exception as rollback_exc:
+                rollback_errors.append(f"{target} -> {source}: {rollback_exc}")
+        if index_path.exists():
+            index_path.unlink()
+        detail = f"Folder move failed and moved products were rolled back: {exc}"
+        if rollback_errors:
+            detail += " Rollback also failed for: " + "; ".join(rollback_errors)
+        raise RuntimeError(detail) from exc
+    return plan
 
 
 def _bounds(scene: dict, target_wkt: str) -> tuple[float, float, float, float] | None:
