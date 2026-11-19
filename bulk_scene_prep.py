@@ -389,6 +389,16 @@ def product_identity(folder: str | Path) -> dict:
     values, metadata_files = _metadata_for_folder(folder)
     path_number, row_number = _path_row(values, "")
     acquired = _metadata_date(values)
+    manifest_path = folder / "pair_manifest.json"
+    if manifest_path.is_file() and (path_number is None or row_number is None or acquired is None):
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            path_number = path_number if path_number is not None else int(manifest.get("path"))
+            row_number = row_number if row_number is not None else int(manifest.get("row"))
+            acquired = acquired or _parse_date(manifest.get("pre_date") or manifest.get("post_date"))
+            metadata_files = metadata_files + [str(manifest_path)]
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            pass
     return {
         "path": path_number,
         "row": row_number,
