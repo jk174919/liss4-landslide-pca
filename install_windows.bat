@@ -17,7 +17,8 @@ if not defined CONDA_BAT (
 )
 
 echo Creating or updating the local GDAL and Streamlit environment...
-call "%CONDA_BAT%" env update --prefix "%ROOT%.conda-env" --file "%ROOT%environment.yml" --prune --yes
+echo If Conda asks to proceed, type Y and press Enter.
+call "%CONDA_BAT%" env update --prefix "%ROOT%.conda-env" --file "%ROOT%environment.yml" --prune
 if errorlevel 1 (
   echo Environment setup failed. Check the messages above and try again.
   pause
