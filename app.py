@@ -279,8 +279,9 @@ with st.sidebar:
 
 st.markdown("### 1. Enter local scene paths")
 st.caption(
-    "Paste either a three-band raster file path or a scene-folder path containing one multi-band raster "
-    "or separate BAND2.tif, BAND3.tif, and BAND4.tif files."
+    "For NRSC products, paste the product-folder path containing BAND_META.txt and BAND2.tif, "
+    "BAND3.tif, and BAND4.tif. The app reads all three files automatically in that order. "
+    "A single multi-band raster is also supported."
 )
 pre_col, post_col = st.columns(2, gap="large")
 with pre_col:
@@ -298,7 +299,7 @@ with post_col:
         key="post_scene_path_text",
     )
 output_text = st.text_input(
-    "Output folder on this PC (leave blank to save beside the pre scene)",
+    "Output folder on this PC (leave blank for the same-drive default)",
     placeholder=r"F:\SILAS\PCA_Results_2026",
     key="pca_output_path_text",
 )
@@ -369,7 +370,10 @@ if (
 if pre_scene:
     default_output_dir = _default_output_dir(pre_scene["scene_directory"])
     st.caption(f"Default save location on this PC: {default_output_dir}")
-st.caption("For a bulk set of product folders, open **Bulk Scene Preparation** in the sidebar.")
+st.caption(
+    "To sort many product folders by metadata Path/Row, open **Sort Products by Path/Row** in the sidebar. "
+    "If selected rasters need a common grid, use **Bulk Scene Preparation** to make aligned outputs first."
+)
 
 grid_ready = False
 if pre_scene and post_scene and pre_indices and post_indices:
