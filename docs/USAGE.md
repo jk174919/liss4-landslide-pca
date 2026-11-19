@@ -2,15 +2,15 @@
 
 ## Input requirements
 
-Use one pre-monsoon and one post-monsoon LISS-IV scene. Each scene must contain corresponding B2, B3, and B4 bands. The app defaults to source indices 1, 2, and 3; change them in the band mapping controls if needed. If a raster depends on sidecars, upload it as a ZIP containing one primary raster and its associated files.
+Use one pre-monsoon and one post-monsoon LISS-IV scene. Paste local paths into the browser app; nothing is uploaded. Each scene can be a multi-band raster file or a folder containing one multi-band raster. For NRSC band-separated products, use the product folder containing BAND2.tif, BAND3.tif, and BAND4.tif. The app groups those files in B2/B3/B4 order.
 
 Both dates must be accurately co-registered before PCA. The app checks the CRS, image dimensions, affine geotransform, pixel size, and extent. Those metadata checks do not establish image tie-point accuracy. The app does not reproject or resample inputs.
 
 ## Run and save
 
-Double-click run_windows.bat. On first use, the launcher creates the local Conda environment from environment.yml; Miniforge or Miniconda must be installed. The local Streamlit server opens the interface in your browser.
+Double-click run_windows.bat. On first use, install_windows.bat creates the local Conda environment from environment.yml; Miniforge or Miniconda must be installed. The local Streamlit server opens the interface in your browser.
 
-Select the two scenes, map the three source band indices for each date, check the co-registration confirmation, and click Run six-component PCA. The app previews PC4 and shows explained variance. Download the ZIP to save the complete set of outputs. The browser uses its configured Downloads folder; enable its “Ask where to save each file” setting to choose a location each time.
+Paste the pre and post raster or product-folder paths. Map source band indices when the source is a multi-band raster. Confirm co-registration, set an output folder, and click Run six-component PCA. The stack, six-component raster, PC1-PC6 rasters, and PCA_metadata.json are written directly to disk. If the output folder is blank, the app creates LISS4_PCA_Results beside the pre-scene folder.
 
 ## Bulk scene matching and common-grid preparation
 
