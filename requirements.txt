@@ -1,5 +1,7 @@
 numpy>=1.24
 streamlit>=1.40,<2
+jupyterlab>=4,<5
+ipykernel
 # Install GDAL from conda-forge so its Python bindings match libgdal.
 
 
