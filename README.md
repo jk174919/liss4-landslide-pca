@@ -12,10 +12,10 @@ The app runs locally on your PC. It reads the folder paths you enter, processes 
 
 ## Use the app
 
-1. Paste the pre- and post-monsoon scene paths. Use either a multi-band raster path or a scene folder containing one multi-band raster. For separate NRSC bands, use the folder with BAND2.tif, BAND3.tif, and BAND4.tif.
-2. Map source bands to B2, B3, and B4 when using a multi-band raster. Separate BAND2/BAND3/BAND4 files are mapped automatically.
+1. Paste the pre- and post-monsoon product-folder paths. For the NRSC layout, each folder can contain BAND2.tif, BAND3.tif, BAND4.tif, and its metadata file; the app reads all three bands automatically in B2/B3/B4 order. A single multi-band raster is supported too.
+2. The app checks that the metadata Path/Row values match and that all six inputs have the same CRS, dimensions, and affine pixel grid. If metadata is missing, you must manually confirm the Path/Row.
 3. Confirm that both scenes are accurately co-registered, then click Run six-component PCA.
-4. Enter an output folder on your PC. If left blank, the app creates LISS4_PCA_Results beside the pre-scene folder.
+4. Enter an output folder on your PC. If left blank, the app creates LISS4_PCA_Results inside the matching Path/Row folder for organized inputs, or beside the pre-scene folder otherwise. It stays on the same drive.
 5. Review PC4 and the explained-variance table. All rasters and metadata are already saved in that output folder.
 
 The app stops if CRS, raster dimensions, affine grid, extent, or resolution do not match. Matching metadata cannot prove accurate tie-point co-registration, so complete that step before PCA.
@@ -30,9 +30,17 @@ The app stops if CRS, raster dimensions, affine grid, extent, or resolution do n
 
 PCA is centered but not standardized: it uses the sample covariance matrix (denominator n - 1) of the raw input bands. Components are ordered by descending eigenvalue. PC4 is an exploratory indicator, not an automatic landslide classification. Inspect candidate patches on slopes against both dates and terrain, then confirm and digitize scars manually. Eigenvector signs are arbitrary, so PC4 may appear inverted relative to ERDAS Imagine.
 
-## Bulk 2026 scene preparation
+## Organize source folders by Path/Row
 
-The browser app also has a **Bulk Scene Preparation** page in the sidebar. Enter the local pre- and post-monsoon parent folders and an output folder, then click **Analyze folders and match path/row**. It recursively reads scene metadata, inventories raster files, and pairs acquisitions by matching path and row:
+Open **Sort Products by Path/Row** in the browser app sidebar. Enter one or more local parent folder paths (one per line) and a new output folder on the same drive. The scanner reads product metadata recursively and groups complete 2026 pre/post products by metadata Path and Row. Pre dates are January through May; post dates are October through December. It requires either separate BAND2/BAND3/BAND4 files or one raster with at least three bands.
+
+Review the match table, choose the Path/Row groups, and confirm **Move selected matched folders**. The app moves each complete original product folder, including all image bands, metadata, and sidecars, into `Path_####_Row_####/Pre_Monsoon/` or `Post_Monsoon/`. Unmatched folders remain where they are. It never replaces an existing product folder, requires the output and source folders to be on the same drive, and writes `path_row_folder_index.csv` in the output root.
+
+After sorting, paste the exact pre- and post-monsoon product-folder paths into the PCA page. The PCA page automatically loads all three separate bands from each folder in SOP order, verifies matching metadata Path/Row, checks the six rasters' georeferencing and pixel grid, then writes the six-band stack and PCA outputs directly to the selected local folder.
+
+## Bulk 2026 common-grid preparation
+
+The browser app also has a **Bulk Scene Preparation** page in the sidebar. This page creates aligned raster outputs for pre/post scenes whose georeferenced extents or pixel grids need a common grid. Enter the local pre- and post-monsoon parent folders and an output folder, then click **Analyze folders and match path/row**. It recursively reads scene metadata and inventories raster files:
 
 - Pre-monsoon window: January 1 through May 31, 2026.
 - Post-monsoon window: October 1 through December 31, 2026.
