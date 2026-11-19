@@ -38,7 +38,7 @@ The browser app also has a **Bulk Scene Preparation** page in the sidebar. Enter
 - Post-monsoon window: October 1 through December 31, 2026.
 - NRSC product metadata fields Path, Row, and DateOfPass are read from BAND_META.txt or .meta.
 - BAND2.tif, BAND3.tif, and BAND4.tif are grouped in that order.
-- Candidate pairs show how much of each scene overlaps. Low-overlap pairs require review.
+- Candidate pairs show how much of each scene overlaps. The best-coverage pair for each path/row is recommended; low-overlap pairs require review.
 - Selected pairs are reprojected/resampled to one CRS and pixel grid, cropped to the common overlap, and saved together under Path_####_Row_#### folders.
 - For separate BAND2/BAND3/BAND4 products, each output is a three-band GeoTIFF in the PCA GUI's expected order.
 
