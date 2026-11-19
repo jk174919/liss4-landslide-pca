@@ -38,6 +38,8 @@ Review the match table, choose the Path/Row groups, and confirm **Move selected 
 
 After sorting, paste the exact pre- and post-monsoon product-folder paths into the PCA page. The PCA page automatically loads all three separate bands from each folder in SOP order, verifies matching metadata Path/Row, checks the six rasters' georeferencing and pixel grid, then writes the six-band stack and PCA outputs directly to the selected local folder.
 
+The same sorting workflow is available in `bulk_pathrow_sort.ipynb`. Edit `SOURCE_ROOTS` and `OUTPUT_ROOT`, inspect the product and move-preview tables, then set `CONFIRM_MOVE = True` and run the final cell to move the selected folders.
+
 ## Bulk 2026 common-grid preparation
 
 The browser app also has a **Bulk Scene Preparation** page in the sidebar. This page creates aligned raster outputs for pre/post scenes whose georeferenced extents or pixel grids need a common grid. Enter the local pre- and post-monsoon parent folders and an output folder, then click **Analyze folders and match path/row**. It recursively reads scene metadata and inventories raster files:
@@ -50,7 +52,7 @@ The browser app also has a **Bulk Scene Preparation** page in the sidebar. This 
 - Selected pairs are reprojected/resampled to one CRS and pixel grid, cropped to the common overlap, and saved together under Path_####_Row_#### folders.
 - For separate BAND2/BAND3/BAND4 products, each output is a three-band GeoTIFF in the PCA GUI's expected order.
 
-The bulk workflow is also available in bulk_scene_preparation.ipynb. Double-click run_notebook_windows.bat to open it in JupyterLab. Edit the three folder paths at the top, then run the cells in order.
+Common-grid preparation is also available in `bulk_scene_preparation.ipynb`. Double-click `run_notebook_windows.bat` to open the notebooks in JupyterLab. Edit the paths at the top of the notebook you want, then run its cells in order.
 
 The supplied NRSC example is already a GEOREF product. If a GeoTIFF is missing its georeferencing tags, the tool can rebuild a transform only when metadata explicitly identifies a GEOREF product and contains a UTM zone and product map bounds. RPC-only or unreferenced scenes without usable control information are reported for review; path/row alone cannot georeference pixels.
 
